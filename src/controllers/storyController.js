@@ -21,7 +21,7 @@ const createStory = [
       }
 
       const isVideo = req.file.mimetype.startsWith('video/');
-      
+
       const story = new Story({
         author: authorId,
         caption,
@@ -86,9 +86,6 @@ const getStoriesFeed = async (req, res) => {
           localField: 'author',
           foreignField: '_id',
           as: 'authorInfo'
-          pipeline: [
-            { $project: { name: 1, profileId: 1, profileImage: 1, isVerified: 1 } }
-          ]
         }
       },
       {
@@ -145,9 +142,9 @@ const getMyStories = async (req, res) => {
       isActive: true,
       expiresAt: { $gt: new Date() }
     })
-    .populate('author', 'name profileId profileImage isVerified')
-    .sort({ createdAt: -1 })
-    .lean();
+      .populate('author', 'name profileId profileImage isVerified')
+      .sort({ createdAt: -1 })
+      .lean();
 
     res.status(200).json({
       success: true,
@@ -183,9 +180,9 @@ const getUserStories = async (req, res) => {
       isActive: true,
       expiresAt: { $gt: new Date() }
     })
-    .populate('author', 'name profileId profileImage isVerified')
-    .sort({ createdAt: -1 })
-    .lean();
+      .populate('author', 'name profileId profileImage isVerified')
+      .sort({ createdAt: -1 })
+      .lean();
 
     // Add view status for current user
     const storiesWithViewStatus = stories.map(story => ({

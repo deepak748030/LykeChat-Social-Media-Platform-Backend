@@ -115,12 +115,12 @@ const userSchema = new mongoose.Schema({
 });
 
 // Indexes for performance
-userSchema.index({ phone: 1 });
-userSchema.index({ profileId: 1 });
-userSchema.index({ email: 1 }, { sparse: true });
+// userSchema.index({ phone: 1 });
+// userSchema.index({ profileId: 1 });
+// userSchema.index({ email: 1 }, { sparse: true });
 userSchema.index({ followersCount: -1 }); // For trending users
 userSchema.index({ name: 'text', profileId: 'text', profession: 'text' }); // For search
-userSchema.index({ createdAt: -1 });
+// userSchema.index({ createdAt: -1 });
 
 // Virtual for posts
 userSchema.virtual('posts', {
@@ -130,13 +130,13 @@ userSchema.virtual('posts', {
 });
 
 // Methods
-userSchema.methods.toJSON = function() {
+userSchema.methods.toJSON = function () {
   const userObject = this.toObject();
   delete userObject.phone; // Remove sensitive data
   return userObject;
 };
 
-userSchema.methods.follow = async function(userId) {
+userSchema.methods.follow = async function (userId) {
   if (!this.following.includes(userId)) {
     this.following.push(userId);
     this.followingCount++;
@@ -152,7 +152,7 @@ userSchema.methods.follow = async function(userId) {
   }
 };
 
-userSchema.methods.unfollow = async function(userId) {
+userSchema.methods.unfollow = async function (userId) {
   const followingIndex = this.following.indexOf(userId);
   if (followingIndex > -1) {
     this.following.splice(followingIndex, 1);

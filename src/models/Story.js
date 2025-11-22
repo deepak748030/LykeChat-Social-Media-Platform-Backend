@@ -54,14 +54,14 @@ const storySchema = new mongoose.Schema({
 });
 
 // Indexes for performance
-storySchema.index({ author: 1, createdAt: -1 });
-storySchema.index({ expiresAt: 1 });
+// storySchema.index({ author: 1, createdAt: -1 });
+// storySchema.index({ expiresAt: 1 });
 storySchema.index({ 'views.user': 1 });
 
 // Methods
-storySchema.methods.addView = async function(userId) {
+storySchema.methods.addView = async function (userId) {
   const existingView = this.views.find(view => view.user.toString() === userId.toString());
-  
+
   if (!existingView) {
     this.views.push({ user: userId });
     this.viewsCount++;
@@ -71,7 +71,7 @@ storySchema.methods.addView = async function(userId) {
   return false; // Already viewed
 };
 
-storySchema.methods.isViewedBy = function(userId) {
+storySchema.methods.isViewedBy = function (userId) {
   return this.views.some(view => view.user.toString() === userId.toString());
 };
 

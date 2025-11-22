@@ -139,16 +139,16 @@ const serviceSchema = new mongoose.Schema({
 });
 
 // Indexes for performance
-serviceSchema.index({ provider: 1 });
+// serviceSchema.index({ provider: 1 });
 serviceSchema.index({ category: 1 });
 serviceSchema.index({ 'location.coordinates': '2dsphere' });
 serviceSchema.index({ 'rating.average': -1 });
-serviceSchema.index({ createdAt: -1 });
+// serviceSchema.index({ createdAt: -1 });
 serviceSchema.index({ tags: 1 });
 serviceSchema.index({ isActive: 1, isFeatured: -1 });
 
 // Methods
-serviceSchema.methods.addReview = async function(userId, rating, comment = '') {
+serviceSchema.methods.addReview = async function (userId, rating, comment = '') {
   // Check if user already reviewed
   const existingReview = this.rating.reviews.find(
     review => review.user.toString() === userId.toString()
@@ -173,17 +173,17 @@ serviceSchema.methods.addReview = async function(userId, rating, comment = '') {
   return true;
 };
 
-serviceSchema.methods.getPriceRange = function() {
+serviceSchema.methods.getPriceRange = function () {
   const { type, minPrice, maxPrice, currency } = this.pricing;
-  
+
   if (type === 'negotiable') {
     return 'Negotiable';
   }
-  
+
   if (type === 'fixed') {
     return `${currency} ${minPrice}`;
   }
-  
+
   return `${currency} ${minPrice}-${maxPrice}`;
 };
 

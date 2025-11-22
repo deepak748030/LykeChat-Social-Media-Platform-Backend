@@ -478,5 +478,4 @@ npm run dev
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.#   L y k e C h a t - S o c i a l - M e d i a - P l a t f o r m - B a c k e n d  
- 
+This project is licensed under the MIT License - see the LICENSE file for details.

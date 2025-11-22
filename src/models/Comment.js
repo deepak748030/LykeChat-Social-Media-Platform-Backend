@@ -53,7 +53,7 @@ const commentSchema = new mongoose.Schema({
 
 // Indexes for performance
 commentSchema.index({ post: 1, createdAt: -1 });
-commentSchema.index({ author: 1 });
+// commentSchema.index({ author: 1 });
 commentSchema.index({ parentComment: 1 });
 commentSchema.index({ 'likes.user': 1 });
 
@@ -66,9 +66,9 @@ commentSchema.virtual('replies', {
 });
 
 // Methods
-commentSchema.methods.like = async function(userId) {
+commentSchema.methods.like = async function (userId) {
   const existingLike = this.likes.find(like => like.user.toString() === userId.toString());
-  
+
   if (!existingLike) {
     this.likes.push({ user: userId });
     this.likesCount++;
@@ -78,9 +78,9 @@ commentSchema.methods.like = async function(userId) {
   return false; // Already liked
 };
 
-commentSchema.methods.unlike = async function(userId) {
+commentSchema.methods.unlike = async function (userId) {
   const likeIndex = this.likes.findIndex(like => like.user.toString() === userId.toString());
-  
+
   if (likeIndex > -1) {
     this.likes.splice(likeIndex, 1);
     this.likesCount--;
@@ -90,19 +90,19 @@ commentSchema.methods.unlike = async function(userId) {
   return false; // Not liked
 };
 
-commentSchema.methods.isLikedBy = function(userId) {
+commentSchema.methods.isLikedBy = function (userId) {
   return this.likes.some(like => like.user.toString() === userId.toString());
 };
 
 // Update parent comment replies count
-commentSchema.post('save', async function() {
+commentSchema.post('save', async function () {
   if (this.parentComment) {
     await this.constructor.updateOne(
       { _id: this.parentComment },
       { $inc: { repliesCount: 1 } }
     );
   }
-  
+
   // Update post comments count
   await mongoose.model('Post').updateOne(
     { _id: this.post },
@@ -110,14 +110,14 @@ commentSchema.post('save', async function() {
   );
 });
 
-commentSchema.post('remove', async function() {
+commentSchema.post('remove', async function () {
   if (this.parentComment) {
     await this.constructor.updateOne(
       { _id: this.parentComment },
       { $inc: { repliesCount: -1 } }
     );
   }
-  
+
   // Update post comments count
   await mongoose.model('Post').updateOne(
     { _id: this.post },

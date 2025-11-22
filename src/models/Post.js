@@ -68,8 +68,8 @@ const postSchema = new mongoose.Schema({
 });
 
 // Indexes for performance
-postSchema.index({ author: 1, createdAt: -1 });
-postSchema.index({ createdAt: -1 });
+// postSchema.index({ createdAt: -1 });
+// postSchema.index({ createdAt: -1 });
 postSchema.index({ likesCount: -1 });
 postSchema.index({ likesCount: -1, commentsCount: -1 }); // For trending posts
 postSchema.index({ tags: 1 });
@@ -83,9 +83,9 @@ postSchema.virtual('comments', {
 });
 
 // Methods
-postSchema.methods.like = async function(userId) {
+postSchema.methods.like = async function (userId) {
   const existingLike = this.likes.find(like => like.user.toString() === userId.toString());
-  
+
   if (!existingLike) {
     this.likes.push({ user: userId });
     this.likesCount++;
@@ -95,9 +95,9 @@ postSchema.methods.like = async function(userId) {
   return false; // Already liked
 };
 
-postSchema.methods.unlike = async function(userId) {
+postSchema.methods.unlike = async function (userId) {
   const likeIndex = this.likes.findIndex(like => like.user.toString() === userId.toString());
-  
+
   if (likeIndex > -1) {
     this.likes.splice(likeIndex, 1);
     this.likesCount--;
@@ -107,7 +107,7 @@ postSchema.methods.unlike = async function(userId) {
   return false; // Not liked
 };
 
-postSchema.methods.isLikedBy = function(userId) {
+postSchema.methods.isLikedBy = function (userId) {
   return this.likes.some(like => like.user.toString() === userId.toString());
 };
 
