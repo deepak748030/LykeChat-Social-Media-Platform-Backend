@@ -112,26 +112,42 @@ npm start
 
 ## 📱 App Screens & API Mapping
 
-### 1. Login/Signup Screen
-**API Endpoint**: `POST /api/auth/login`
+### 1. Phone Number Entry Screen
+**API Endpoint**: `POST /api/auth/send-otp`
 
 **Mock Data**:
 ```json
 {
+  "phone": "+919999966666"
+}
+```
+
+**Response for Existing User**:
+```json
+{
+  "success": true,
+  "message": "OTP sent successfully",
+  "type": "login",
   "phone": "+919999966666",
-  "otp": "123456",
-  "userDetails": {
-    "name": "John Doe",
-    "profileId": "johndoe",
-    "email": "john@example.com"
-  }
+  "otp": "123456"
+}
+```
+
+**Response for New User**:
+```json
+{
+  "success": true,
+  "message": "OTP sent successfully",
+  "type": "signup",
+  "phone": "+919999966666",
+  "otp": "123456"
 }
 ```
 
 ### 2. OTP Verification Screen
-**API Endpoint**: `POST /api/auth/login` (same as above)
+**API Endpoint**: `POST /api/auth/verify-otp`
 
-**Mock Data**:
+**For Login (Existing User)**:
 ```json
 {
   "phone": "+919999966666",
@@ -139,16 +155,73 @@ npm start
 }
 ```
 
-### 3. Profile Details Screen
+**For Signup (New User)**:
+```json
+{
+  "phone": "+919999966666",
+  "otp": "123456",
+  "userDetails": {
+    "name": "John Doe",
+    "profileId": "johndoe",
+    "email": "john@example.com",
+    "profession": "Software Engineer",
+    "bio": "Digital Creator from India"
+  }
+}
+```
+
+**Login Response**:
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "type": "login",
+  "token": "jwt_token_here",
+  "user": {
+    "_id": "user123",
+    "name": "John Doe",
+    "profileId": "johndoe",
+    "profileImage": "/uploads/profiles/john.jpg",
+    "bio": "Digital Creator from India",
+    "profession": "Software Engineer",
+    "followersCount": 1250,
+    "followingCount": 243,
+    "postsCount": 45,
+    "isVerified": false
+  }
+}
+```
+
+**Signup Response**:
+```json
+{
+  "success": true,
+  "message": "Registration successful",
+  "type": "signup",
+  "token": "jwt_token_here",
+  "user": {
+    "_id": "user456",
+    "name": "John Doe",
+    "profileId": "johndoe",
+    "profileImage": "",
+    "bio": "Digital Creator from India",
+    "profession": "Software Engineer",
+    "followersCount": 0,
+    "followingCount": 0,
+    "postsCount": 0,
+    "isVerified": false
+  }
+}
+```
+
+### 3. Profile Setup Screen (Only for New Users)
 **API Endpoint**: `PUT /api/users/profile`
 
 **Mock Data**:
 ```json
 {
-  "name": "John Doe",
-  "bio": "Digital Creator from India",
-  "profession": "Software Engineer",
-  "education": "B.Tech Computer Science",
+  "bio": "Updated bio here",
+  "profession": "Updated profession",
   "interests": ["Technology", "Photography", "Travel"],
   "dateOfBirth": "1995-06-15",
   "country": "India",
@@ -195,7 +268,70 @@ npm start
 }
 ```
 
-### 5. Community Screen
+## 🔗 API Endpoints
+
+### Authentication
+- `POST /api/auth/send-otp` - Send OTP to phone number
+- `POST /api/auth/verify-otp` - Verify OTP and authenticate
+- `GET /api/auth/me` - Get current user info
+
+## 📋 Authentication Flow
+
+### Step 1: Send OTP
+1. User enters phone number
+2. App calls `POST /api/auth/send-otp` with phone number
+3. API responds with:
+   - `type: "login"` - User exists, navigate to OTP verification for login
+   - `type: "signup"` - New user, navigate to OTP verification for signup
+
+### Step 2: Verify OTP
+1. User enters OTP (123456 for demo)
+2. App calls `POST /api/auth/verify-otp` with:
+   - For login: `{ phone, otp }`
+   - For signup: `{ phone, otp, userDetails }`
+3. API responds with:
+   - `type: "login"` - Navigate to home screen
+   - `type: "signup"` - Navigate to profile setup screen (optional) or home screen
+   - `type: "signup_incomplete"` - Missing user details, show profile form
+
+### Frontend Navigation Logic
+```javascript
+// After send-otp response
+if (response.type === 'login') {
+  // Navigate to OTP screen for login
+} else if (response.type === 'signup') {
+  // Navigate to OTP screen for signup
+}
+
+// After verify-otp response
+if (response.type === 'login') {
+  // Save token and navigate to home screen
+} else if (response.type === 'signup') {
+  // Save token and navigate to home screen or profile setup
+} else if (response.type === 'signup_incomplete') {
+  // Show profile details form
+}
+```
+
+### 5. Profile Details Screen (Continued from above)
+
+**Mock Data**:
+```json
+{
+  "name": "John Doe",
+  "bio": "Digital Creator from India",
+  "profession": "Software Engineer",
+  "education": "B.Tech Computer Science",
+  "interests": ["Technology", "Photography", "Travel"],
+  "dateOfBirth": "1995-06-15",
+  "country": "India",
+  "state": "Delhi",
+  "district": "New Delhi",
+  "website": "https://johndoe.com"
+}
+```
+
+### 6. Community Screen
 **API Endpoint**: `GET /api/posts/trending?category=tech`
 
 **Mock Response**:
@@ -220,7 +356,7 @@ npm start
 }
 ```
 
-### 6. Comments Screen
+### 7. Comments Screen
 **API Endpoint**: `GET /api/comments/post/:postId`
 
 **Mock Response**:
@@ -244,7 +380,7 @@ npm start
 }
 ```
 
-### 7. Services Screen
+### 8. Services Screen
 **API Endpoint**: `GET /api/services?location=Delhi`
 
 **Mock Response**:
@@ -281,7 +417,7 @@ npm start
 }
 ```
 
-### 8. Users Discovery Screen
+### 9. Users Discovery Screen
 **API Endpoint**: `GET /api/users/suggestions`
 
 **Mock Response**:
@@ -302,7 +438,7 @@ npm start
 }
 ```
 
-### 9. User Profile Screen
+### 10. User Profile Screen
 **API Endpoint**: `GET /api/users/:profileId`
 
 **Mock Response**:
@@ -323,12 +459,6 @@ npm start
   }
 }
 ```
-
-## 🔗 API Endpoints
-
-### Authentication
-- `POST /api/auth/login` - Login or register user
-- `GET /api/auth/me` - Get current user info
 
 ### Users
 - `GET /api/users/search` - Search users

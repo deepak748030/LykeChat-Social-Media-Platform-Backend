@@ -2,12 +2,12 @@ const User = require('../models/User');
 const { generateToken } = require('../middleware/auth');
 const { userCache } = require('../config/cache');
 
-// @desc    Login or Register user
-// @route   POST /api/auth/login
+// @desc    Send OTP to phone number
+// @route   POST /api/auth/send-otp
 // @access  Public
-const loginOrRegister = async (req, res) => {
+const sendOtp = async (req, res) => {
   try {
-    const { phone, otp, userDetails } = req.body;
+    const { phone } = req.body;
 
     // Validate phone number
     if (!phone) {
@@ -17,18 +17,54 @@ const loginOrRegister = async (req, res) => {
       });
     }
 
-    // For demo purposes, we use a fixed OTP
-    const validOTP = process.env.DEFAULT_OTP || '123456';
+    // Check if user exists
+    const existingUser = await User.findOne({ phone }).lean();
 
-    // If OTP is not provided, send OTP (simulation)
-    if (!otp) {
+    if (existingUser) {
+      // User is already registered
       return res.status(200).json({
         success: true,
         message: 'OTP sent successfully',
-        otpSent: true,
-        phone: phone
+        type: 'login',
+        phone: phone,
+        otp: process.env.DEFAULT_OTP || '123456' // For demo purposes
+      });
+    } else {
+      // New user
+      return res.status(200).json({
+        success: true,
+        message: 'OTP sent successfully',
+        type: 'signup',
+        phone: phone,
+        otp: process.env.DEFAULT_OTP || '123456' // For demo purposes
       });
     }
+  } catch (error) {
+    console.error('Send OTP error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Verify OTP and authenticate user
+// @route   POST /api/auth/verify-otp
+// @access  Public
+const verifyOtpAndAuth = async (req, res) => {
+  try {
+    const { phone, otp, userDetails } = req.body;
+
+    // Validate required fields
+    if (!phone || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Phone number and OTP are required'
+      });
+    }
+
+    // For demo purposes, we use a fixed OTP
+    const validOTP = process.env.DEFAULT_OTP || '123456';
 
     // Validate OTP
     if (otp !== validOTP) {
@@ -42,7 +78,7 @@ const loginOrRegister = async (req, res) => {
     let user = await User.findOne({ phone });
 
     if (user) {
-      // User exists - login
+      // Existing user - login flow
       user.lastSeen = new Date();
       await user.save();
 
@@ -54,13 +90,15 @@ const loginOrRegister = async (req, res) => {
       res.status(200).json({
         success: true,
         message: 'Login successful',
-        isNewUser: false,
+        type: 'login',
         token,
         user: {
           _id: user._id,
           name: user.name,
           profileId: user.profileId,
           profileImage: user.profileImage,
+          bio: user.bio,
+          profession: user.profession,
           followersCount: user.followersCount,
           followingCount: user.followingCount,
           postsCount: user.postsCount,
@@ -68,13 +106,12 @@ const loginOrRegister = async (req, res) => {
         }
       });
     } else {
-      // User doesn't exist - need user details for registration
+      // New user - signup flow
       if (!userDetails || !userDetails.name || !userDetails.profileId) {
         return res.status(400).json({
           success: false,
-          message: 'User details required for registration',
-          isNewUser: true,
-          phone: phone
+          message: 'User details (name and profileId) are required for registration',
+          type: 'signup_incomplete'
         });
       }
 
@@ -104,13 +141,15 @@ const loginOrRegister = async (req, res) => {
       res.status(201).json({
         success: true,
         message: 'Registration successful',
-        isNewUser: true,
+        type: 'signup',
         token,
         user: {
           _id: user._id,
           name: user.name,
           profileId: user.profileId,
           profileImage: user.profileImage,
+          bio: user.bio,
+          profession: user.profession,
           followersCount: user.followersCount,
           followingCount: user.followingCount,
           postsCount: user.postsCount,
@@ -119,7 +158,7 @@ const loginOrRegister = async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('Login/Register error:', error);
+    console.error('Verify OTP error:', error);
     res.status(500).json({
       success: false,
       message: error.message
@@ -149,6 +188,7 @@ const getMe = async (req, res) => {
 };
 
 module.exports = {
-  loginOrRegister,
+  sendOtp,
+  verifyOtpAndAuth,
   getMe
 };

@@ -1,11 +1,12 @@
 const express = require('express');
-const { loginOrRegister, getMe } = require('../controllers/authController');
+const { sendOtp, verifyOtpAndAuth, getMe } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 
 const router = express.Router();
 
 // Authentication routes
-router.post('/login', loginOrRegister);
+router.post('/send-otp', sendOtp);
+router.post('/verify-otp', verifyOtpAndAuth);
 router.get('/me', protect, getMe);
 
 module.exports = router;
