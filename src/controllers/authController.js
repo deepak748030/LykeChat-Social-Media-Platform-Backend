@@ -107,41 +107,46 @@ const verifyOtpAndAuth = async (req, res) => {
       });
     } else {
       // New user - signup flow
-      if (!userDetails || !userDetails.name || !userDetails.profileId) {
-        return res.status(400).json({
-          success: false,
-          message: 'User details (name and profileId) are required for registration',
-          type: 'signup_incomplete'
-        });
+      let responseType = 'signup';
+      let newUserFields = { phone };
+
+      if (userDetails) {
+        // If userDetails are provided, use them
+        newUserFields = {
+          ...newUserFields,
+          name: userDetails.name,
+          profileId: userDetails.profileId,
+          email: userDetails.email,
+          dateOfBirth: userDetails.dateOfBirth,
+          country: userDetails.country,
+          state: userDetails.state,
+          district: userDetails.district,
+          tahsil: userDetails.tahsil,
+          village: userDetails.village,
+          profession: userDetails.profession,
+          education: userDetails.education,
+          interests: userDetails.interests,
+          bio: userDetails.bio,
+          website: userDetails.website
+        };
       }
 
-      // Create new user
-      user = new User({
-        phone,
-        name: userDetails.name,
-        profileId: userDetails.profileId,
-        email: userDetails.email,
-        dateOfBirth: userDetails.dateOfBirth,
-        country: userDetails.country,
-        state: userDetails.state,
-        district: userDetails.district,
-        tahsil: userDetails.tahsil,
-        village: userDetails.village,
-        profession: userDetails.profession,
-        education: userDetails.education,
-        interests: userDetails.interests,
-        bio: userDetails.bio,
-        website: userDetails.website
-      });
+      // Create new user with provided details or just phone
+      user = new User(newUserFields);
 
       await user.save();
+
+      // Determine response type for frontend navigation
+      if (!user.name || !user.profileId) {
+        responseType = 'signup_incomplete';
+      }
 
       const token = generateToken(user._id);
 
       res.status(201).json({
         success: true,
         message: 'Registration successful',
-        type: 'signup',
+        type: responseType, // Indicate if profile completion is needed
         token,
         user: {
           _id: user._id,

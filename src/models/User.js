@@ -4,14 +4,15 @@ const bcrypt = require('bcryptjs');
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: [true, 'Name is required'],
+    // required: [true, 'Name is required'], // Made optional for initial signup
     trim: true,
     maxlength: [100, 'Name cannot exceed 100 characters']
   },
   profileId: {
     type: String,
     unique: true,
-    required: [true, 'Profile ID is required'],
+    sparse: true, // Allows multiple null values
+    // required: [true, 'Profile ID is required'], // Made optional for initial signup
     trim: true,
     lowercase: true,
     match: [/^[a-zA-Z0-9_]+$/, 'Profile ID can only contain letters, numbers, and underscores']
@@ -114,13 +115,12 @@ const userSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Indexes for performance
-// userSchema.index({ phone: 1 });
-// userSchema.index({ profileId: 1 });
-// userSchema.index({ email: 1 }, { sparse: true });
+// Drop old indexes and create new ones
+userSchema.index({ phone: 1 }, { unique: true });
+userSchema.index({ profileId: 1 }, { unique: true, sparse: true });
+userSchema.index({ email: 1 }, { unique: true, sparse: true });
 userSchema.index({ followersCount: -1 }); // For trending users
 userSchema.index({ name: 'text', profileId: 'text', profession: 'text' }); // For search
-// userSchema.index({ createdAt: -1 });
 
 // Virtual for posts
 userSchema.virtual('posts', {
@@ -171,5 +171,18 @@ userSchema.methods.unfollow = async function (userId) {
     }
   }
 };
+
+// Pre-save middleware to handle unique constraints
+userSchema.pre('save', function (next) {
+  // If profileId is empty string, set it to null for sparse index
+  if (this.profileId === '') {
+    this.profileId = null;
+  }
+  // If email is empty string, set it to null for sparse index
+  if (this.email === '') {
+    this.email = null;
+  }
+  next();
+});
 
 module.exports = mongoose.model('User', userSchema);

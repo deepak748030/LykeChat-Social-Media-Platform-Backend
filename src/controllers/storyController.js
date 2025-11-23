@@ -1,5 +1,5 @@
 const Story = require('../models/Story');
-const User = require('../models/User');
+const User = require('../models/User'); // Corrected require statement
 const { storyCache } = require('../config/cache');
 const { uploadMiddleware } = require('../middleware/upload');
 

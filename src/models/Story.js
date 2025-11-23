@@ -54,8 +54,8 @@ const storySchema = new mongoose.Schema({
 });
 
 // Indexes for performance
-// storySchema.index({ author: 1, createdAt: -1 });
-// storySchema.index({ expiresAt: 1 });
+storySchema.index({ author: 1, createdAt: -1 });
+storySchema.index({ expiresAt: 1 });
 storySchema.index({ 'views.user': 1 });
 
 // Methods

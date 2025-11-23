@@ -10,7 +10,7 @@ const createPost = [
   uploadMiddleware.multiple('media'),
   async (req, res) => {
     try {
-      const { caption, tags, location } = req.body;
+      const { caption, tags, location, visibility, commentsEnabled } = req.body;
       const authorId = req.user._id;
 
       if (!req.files || req.files.length === 0) {
@@ -35,7 +35,9 @@ const createPost = [
         caption,
         media,
         tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
-        location: location ? JSON.parse(location) : undefined
+        location: location ? JSON.parse(location) : undefined,
+        visibility: visibility || 'public', // Default to public if not provided
+        commentsEnabled: commentsEnabled !== undefined ? JSON.parse(commentsEnabled) : true // Default to true if not provided
       });
 
       await post.save();
@@ -48,7 +50,7 @@ const createPost = [
 
       // Clear relevant caches
       postCache.del('home_feed');
-      
+
       res.status(201).json({
         success: true,
         message: 'Post created successfully',
@@ -85,17 +87,20 @@ const getHomeFeed = async (req, res) => {
     const currentUser = await User.findById(currentUserId).select('following');
     const followingIds = [...currentUser.following, currentUserId]; // Include own posts
 
-    // Get posts from followed users
-    const posts = await Post.find({ 
-      author: { $in: followingIds },
-      isActive: true 
+    // Get posts from followed users and public posts
+    const posts = await Post.find({
+      $or: [
+        { author: { $in: followingIds } }, // Posts from followed users or self
+        { visibility: 'public' } // Public posts
+      ],
+      isActive: true
     })
-    .populate('author', 'name profileId profileImage isVerified')
-    .select('-likes') // Exclude likes array to reduce payload
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit)
-    .lean();
+      .populate('author', 'name profileId profileImage isVerified')
+      .select('-likes') // Exclude likes array to reduce payload
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
 
     // Add like status for current user
     // Get user's liked posts in a single query
@@ -103,17 +108,20 @@ const getHomeFeed = async (req, res) => {
       _id: { $in: posts.map(p => p._id) },
       'likes.user': currentUserId
     }).select('_id').lean();
-    
+
     const likedPostIds = new Set(likedPosts.map(p => p._id.toString()));
-    
+
     const postsWithLikeStatus = posts.map(post => ({
       ...post,
       isLikedByUser: likedPostIds.has(post._id.toString())
     }));
 
-    const total = await Post.countDocuments({ 
-      author: { $in: followingIds },
-      isActive: true 
+    const total = await Post.countDocuments({
+      $or: [
+        { author: { $in: followingIds } },
+        { visibility: 'public' }
+      ],
+      isActive: true
     });
 
     const result = {
@@ -162,6 +170,14 @@ const getPost = async (req, res) => {
         return res.status(404).json({
           success: false,
           message: 'Post not found'
+        });
+      }
+
+      // Check visibility for private posts
+      if (post.visibility === 'private' && (!currentUserId || post.author._id.toString() !== currentUserId.toString())) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access to this private post is denied.'
         });
       }
 
@@ -306,23 +322,25 @@ const getTrendingPosts = async (req, res) => {
     // Get trending posts (sorted by likes and comments in last 24 hours)
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-    const posts = await Post.find({ 
+    const posts = await Post.find({
       isActive: true,
+      visibility: 'public', // Only public posts can be trending
       createdAt: { $gte: oneDayAgo }
     })
-    .populate('author', 'name profileId profileImage isVerified')
-    .select('-likes') // Exclude likes array
-    .sort({ 
-      likesCount: -1, 
-      commentsCount: -1,
-      createdAt: -1 
-    })
-    .skip(skip)
-    .limit(limit)
-    .lean();
+      .populate('author', 'name profileId profileImage isVerified')
+      .select('-likes') // Exclude likes array
+      .sort({
+        likesCount: -1,
+        commentsCount: -1,
+        createdAt: -1
+      })
+      .skip(skip)
+      .limit(limit)
+      .lean();
 
-    const total = await Post.countDocuments({ 
+    const total = await Post.countDocuments({
       isActive: true,
+      visibility: 'public',
       createdAt: { $gte: oneDayAgo }
     });
 

@@ -3,7 +3,7 @@ const Post = require('../models/Post');
 const { userCache } = require('../config/cache');
 const { uploadMiddleware } = require('../middleware/upload');
 
-// @desc    Get user profile
+// @desc    Get user profile by profileId
 // @route   GET /api/users/:profileId
 // @access  Public
 const getUserProfile = async (req, res) => {
@@ -52,6 +52,45 @@ const getUserProfile = async (req, res) => {
   }
 };
 
+// @desc    Get current authenticated user's profile
+// @route   GET /api/users/profile
+// @access  Private
+const getCurrentUserProfile = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // Check cache first
+    const cacheKey = `user:${userId}`; // Use user ID for cache key
+    let user = userCache.get(cacheKey);
+
+    if (!user) {
+      user = await User.findById(userId)
+        .select('-phone') // Exclude phone for security
+        .lean();
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      // Cache the user for future requests
+      userCache.set(cacheKey, user, 1800); // 30 minutes
+    }
+
+    res.status(200).json({
+      success: true,
+      user
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
 // @desc    Update user profile
 // @route   PUT /api/users/profile
 // @access  Private
@@ -60,18 +99,39 @@ const updateProfile = async (req, res) => {
     const userId = req.user._id;
     const updateData = { ...req.body };
 
-    // Remove fields that shouldn't be updated directly
-    delete updateData.phone;
+    // Handle profile image upload if present
+    if (req.file) {
+      updateData.profileImage = `/uploads/profiles/${req.file.filename}`;
+    }
+
+    // Parse 'interests' field if it's sent as a string (JSON or comma-separated)
+    if (updateData.interests) {
+      try {
+        updateData.interests = JSON.parse(updateData.interests);
+      } catch (e) {
+        // If not valid JSON, assume comma-separated string
+        updateData.interests = updateData.interests.split(',').map(item => item.trim());
+      }
+    }
+
+    // Parse 'dateOfBirth' field if it's sent as a string
+    if (updateData.dateOfBirth) {
+      updateData.dateOfBirth = new Date(updateData.dateOfBirth);
+    }
+
+    // Remove fields that shouldn't be updated directly or are handled separately
+    delete updateData.phone; // Phone number should have a separate update mechanism
     delete updateData.followers;
     delete updateData.following;
     delete updateData.followersCount;
     delete updateData.followingCount;
     delete updateData.postsCount;
 
+    // The pre-save hook in the User model will handle converting empty strings for profileId and email to null
     const user = await User.findByIdAndUpdate(
       userId,
       updateData,
-      { new: true, runValidators: true }
+      { new: true, runValidators: true } // runValidators ensures pre-save hooks and schema validations run
     ).select('-phone');
 
     if (!user) {
@@ -81,9 +141,9 @@ const updateProfile = async (req, res) => {
       });
     }
 
-    // Clear cache
+    // Clear cache for the updated user
     userCache.del(`user:${userId}`);
-    userCache.del(`profile:${user.profileId}`);
+    userCache.del(`profile:${user.profileId}`); // Clear cache for the profileId
 
     res.status(200).json({
       success: true,
@@ -97,55 +157,6 @@ const updateProfile = async (req, res) => {
     });
   }
 };
-
-// @desc    Upload profile image
-// @route   POST /api/users/profile/image
-// @access  Private
-const uploadProfileImage = [
-  uploadMiddleware.single('profileImage'),
-  async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({
-          success: false,
-          message: 'No image file provided'
-        });
-      }
-
-      const userId = req.user._id;
-      const imageUrl = `/uploads/profiles/${req.file.filename}`;
-
-      const user = await User.findByIdAndUpdate(
-        userId,
-        { profileImage: imageUrl },
-        { new: true }
-      ).select('-phone');
-
-      if (!user) {
-        return res.status(404).json({
-          success: false,
-          message: 'User not found'
-        });
-      }
-
-      // Clear cache
-      userCache.del(`user:${userId}`);
-      userCache.del(`profile:${user.profileId}`);
-
-      res.status(200).json({
-        success: true,
-        message: 'Profile image uploaded successfully',
-        imageUrl,
-        user
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
-];
 
 // @desc    Follow/Unfollow user
 // @route   POST /api/users/:profileId/follow
@@ -176,7 +187,7 @@ const toggleFollow = async (req, res) => {
     if (isFollowing) {
       // Unfollow
       await currentUser.unfollow(userToFollow._id);
-      
+
       // Clear cache
       userCache.del(`user:${currentUserId}`);
       userCache.del(`profile:${currentUser.profileId}`);
@@ -190,7 +201,7 @@ const toggleFollow = async (req, res) => {
     } else {
       // Follow
       await currentUser.follow(userToFollow._id);
-      
+
       // Clear cache
       userCache.del(`user:${currentUserId}`);
       userCache.del(`profile:${currentUser.profileId}`);
@@ -262,7 +273,7 @@ const getUserPosts = async (req, res) => {
 const searchUsers = async (req, res) => {
   try {
     const { q, page = 1, limit = 20 } = req.query;
-    
+
     if (!q || q.trim().length === 0) {
       return res.status(400).json({
         success: false,
@@ -279,11 +290,11 @@ const searchUsers = async (req, res) => {
       $text: { $search: q.trim() },
       isActive: true
     })
-    .select('name profileId profileImage profession followersCount isVerified')
-    .sort({ score: { $meta: 'textScore' }, followersCount: -1 })
-    .skip(skip)
-    .limit(parseInt(limit))
-    .lean();
+      .select('name profileId profileImage profession followersCount isVerified')
+      .sort({ score: { $meta: 'textScore' }, followersCount: -1 })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .lean();
 
     const total = await User.countDocuments({
       $text: { $search: q.trim() },
@@ -321,16 +332,16 @@ const getSuggestedUsers = async (req, res) => {
 
     // Get users that current user is not following
     const suggestions = await User.find({
-      _id: { 
+      _id: {
         $ne: currentUserId,
-        $nin: currentUser.following 
+        $nin: currentUser.following
       },
       isActive: true
     })
-    .select('name profileId profileImage profession followersCount isVerified interests')
-    .sort({ followersCount: -1 })
-    .limit(limit)
-    .lean();
+      .select('name profileId profileImage profession followersCount isVerified interests')
+      .sort({ followersCount: -1 })
+      .limit(limit)
+      .lean();
 
     res.status(200).json({
       success: true,
@@ -347,9 +358,9 @@ const getSuggestedUsers = async (req, res) => {
 module.exports = {
   getUserProfile,
   updateProfile,
-  uploadProfileImage,
   toggleFollow,
   getUserPosts,
   searchUsers,
-  getSuggestedUsers
+  getSuggestedUsers,
+  getCurrentUserProfile // Export the new function
 };

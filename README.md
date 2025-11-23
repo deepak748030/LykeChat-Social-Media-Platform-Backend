@@ -110,12 +110,14 @@ Production mode:
 npm start
 ```
 
-## 📱 App Screens & API Mapping
+## 📱 Complete API Documentation with Mock Data
 
-### 1. Phone Number Entry Screen
+### 1. Authentication APIs
+
+#### Send OTP
 **API Endpoint**: `POST /api/auth/send-otp`
 
-**Mock Data**:
+**Request Body (JSON)**:
 ```json
 {
   "phone": "+919999966666"
@@ -144,10 +146,10 @@ npm start
 }
 ```
 
-### 2. OTP Verification Screen
+#### Verify OTP
 **API Endpoint**: `POST /api/auth/verify-otp`
 
-**For Login (Existing User)**:
+**Request Body for Login (JSON)**:
 ```json
 {
   "phone": "+919999966666",
@@ -155,7 +157,7 @@ npm start
 }
 ```
 
-**For Signup (New User)**:
+**Request Body for Signup with Complete Details (JSON)**:
 ```json
 {
   "phone": "+919999966666",
@@ -165,7 +167,13 @@ npm start
     "profileId": "johndoe",
     "email": "john@example.com",
     "profession": "Software Engineer",
-    "bio": "Digital Creator from India"
+    "bio": "Digital Creator from India",
+    "interests": ["Technology", "Photography", "Travel"],
+    "dateOfBirth": "1995-06-15",
+    "country": "India",
+    "state": "Delhi",
+    "district": "New Delhi",
+    "website": "https://johndoe.com"
   }
 }
 ```
@@ -192,285 +200,619 @@ npm start
 }
 ```
 
-**Signup Response**:
+### 2. User Profile APIs
+
+#### Update Profile
+**API Endpoint**: `PUT /api/users/profile`
+
+**FormData Request Example (JavaScript)**:
+```javascript
+const updateProfileWithFormData = async (token) => {
+  const formData = new FormData();
+
+  // Text fields
+  formData.append('name', 'Jane Doe');
+  formData.append('profileId', 'janedoe_official');
+  formData.append('email', 'jane.doe@example.com');
+  formData.append('dateOfBirth', '1990-05-20');
+  formData.append('country', 'India');
+  formData.append('state', 'Maharashtra');
+  formData.append('district', 'Mumbai');
+  formData.append('tahsil', 'Andheri');
+  formData.append('village', 'Versova');
+  formData.append('profession', 'Software Engineer');
+  formData.append('education', 'B.Tech in Computer Science');
+  formData.append('interests', JSON.stringify(['Technology', 'Reading', 'Hiking']));
+  formData.append('bio', 'Passionate developer and nature enthusiast.');
+  formData.append('website', 'https://janedoe.dev');
+
+  // Profile image file
+  // In React Native: const imageUri = await ImagePicker.launchImageLibraryAsync();
+  // formData.append('profileImage', { uri: imageUri, name: 'profile.jpg', type: 'image/jpeg' });
+  
+  const response = await fetch('http://localhost:5000/api/users/profile', {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  return await response.json();
+};
+```
+
+**Response**:
 ```json
 {
   "success": true,
-  "message": "Registration successful",
-  "type": "signup",
-  "token": "jwt_token_here",
+  "message": "Profile updated successfully",
   "user": {
-    "_id": "user456",
-    "name": "John Doe",
-    "profileId": "johndoe",
-    "profileImage": "",
-    "bio": "Digital Creator from India",
+    "_id": "user123",
+    "name": "Jane Doe",
+    "profileId": "janedoe_official",
+    "email": "jane.doe@example.com",
+    "profileImage": "/uploads/profiles/profile-1678901234567.jpg",
+    "bio": "Passionate developer and nature enthusiast.",
     "profession": "Software Engineer",
-    "followersCount": 0,
-    "followingCount": 0,
-    "postsCount": 0,
+    "followersCount": 1250,
+    "followingCount": 243,
+    "postsCount": 45,
     "isVerified": false
   }
 }
 ```
 
-### 3. Profile Setup Screen (Only for New Users)
-**API Endpoint**: `PUT /api/users/profile`
+#### Follow/Unfollow User
+**API Endpoint**: `POST /api/users/:profileId/follow`
 
-**Mock Data**:
-```json
-{
-  "bio": "Updated bio here",
-  "profession": "Updated profession",
-  "interests": ["Technology", "Photography", "Travel"],
-  "dateOfBirth": "1995-06-15",
-  "country": "India",
-  "state": "Delhi",
-  "district": "New Delhi",
-  "website": "https://johndoe.com"
-}
-```
+**Request Body**: No body required
 
-### 4. Home Feed Screen
-**API Endpoints**: 
-- `GET /api/posts/feed` - Get posts
-- `GET /api/stories/feed` - Get stories
-- `GET /api/advertisements/feed` - Get ads
-
-**Mock Response**:
+**Response**:
 ```json
 {
   "success": true,
-  "posts": [
-    {
-      "_id": "post123",
-      "author": {
-        "_id": "user123",
-        "name": "Priti Verma",
-        "profileId": "pritiverma",
-        "profileImage": "/uploads/profiles/priti.jpg",
-        "isVerified": false
-      },
-      "caption": "Beautiful sunset today! 🌅",
-      "media": [
-        {
-          "type": "image",
-          "url": "/uploads/posts/sunset.jpg"
-        }
-      ],
-      "likesCount": 128,
-      "commentsCount": 24,
-      "sharesCount": 8,
-      "isLikedByUser": false,
-      "createdAt": "2024-01-15T10:30:00Z"
-    }
-  ]
+  "message": "User followed successfully",
+  "isFollowing": true
 }
 ```
 
-## 🔗 API Endpoints
+### 3. Posts APIs
+
+#### Create Post
+**API Endpoint**: `POST /api/posts`
+
+**FormData Request Example (JavaScript)**:
+```javascript
+const createPostWithFormData = async (token) => {
+  const formData = new FormData();
+
+  // Text fields
+  formData.append('caption', 'Exploring the beautiful mountains today! #nature #travel');
+  formData.append('tags', 'mountains,travel,adventure');
+  formData.append('location', JSON.stringify({
+    name: 'Himalayan Peaks',
+    coordinates: { latitude: 30.7333, longitude: 76.7794 }
+  }));
+  formData.append('visibility', 'public'); // 'public' or 'private'
+  formData.append('commentsEnabled', 'true');
+
+  // Multiple media files
+  // In React Native: 
+  // const imageResult = await ImagePicker.launchImageLibraryAsync();
+  // const videoResult = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'Videos' });
+  // formData.append('media', { uri: imageResult.uri, name: 'image.jpg', type: 'image/jpeg' });
+  // formData.append('media', { uri: videoResult.uri, name: 'video.mp4', type: 'video/mp4' });
+
+  const response = await fetch('http://localhost:5000/api/posts', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  return await response.json();
+};
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Post created successfully",
+  "post": {
+    "_id": "post123",
+    "author": {
+      "_id": "user123",
+      "name": "Jane Doe",
+      "profileId": "janedoe_official",
+      "profileImage": "/uploads/profiles/jane.jpg",
+      "isVerified": false
+    },
+    "caption": "Exploring the beautiful mountains today! #nature #travel",
+    "media": [
+      {
+        "type": "image",
+        "url": "/uploads/posts/mountain_view-1678901234567.jpg"
+      },
+      {
+        "type": "video",
+        "url": "/uploads/posts/mountain_trek-1678901234568.mp4",
+        "thumbnail": "/uploads/posts/thumb_mountain_trek-1678901234568.jpg"
+      }
+    ],
+    "tags": ["mountains", "travel", "adventure"],
+    "location": {
+      "name": "Himalayan Peaks",
+      "coordinates": { "latitude": 30.7333, "longitude": 76.7794 }
+    },
+    "visibility": "public",
+    "commentsEnabled": true,
+    "likesCount": 0,
+    "commentsCount": 0,
+    "sharesCount": 0,
+    "createdAt": "2024-01-15T10:30:00Z"
+  }
+}
+```
+
+#### Like/Unlike Post
+**API Endpoint**: `POST /api/posts/:id/like`
+
+**Request Body**: No body required
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Post liked successfully",
+  "isLiked": true,
+  "likesCount": 129
+}
+```
+
+#### Share Post
+**API Endpoint**: `POST /api/posts/:id/share`
+
+**Request Body**: No body required
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Post shared successfully",
+  "sharesCount": 9
+}
+```
+
+### 4. Stories APIs
+
+#### Create Story
+**API Endpoint**: `POST /api/stories`
+
+**FormData Request Example (JavaScript)**:
+```javascript
+const createStoryWithFormData = async (token) => {
+  const formData = new FormData();
+
+  // Text fields
+  formData.append('caption', 'My morning coffee view!');
+
+  // Single media file
+  // In React Native:
+  // const mediaResult = await ImagePicker.launchImageLibraryAsync();
+  // formData.append('media', { uri: mediaResult.uri, name: 'story.jpg', type: 'image/jpeg' });
+
+  const response = await fetch('http://localhost:5000/api/stories', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  return await response.json();
+};
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Story created successfully",
+  "story": {
+    "_id": "story123",
+    "author": {
+      "_id": "user123",
+      "name": "Jane Doe",
+      "profileId": "janedoe_official",
+      "profileImage": "/uploads/profiles/jane.jpg",
+      "isVerified": false
+    },
+    "caption": "My morning coffee view!",
+    "media": {
+      "type": "image",
+      "url": "/uploads/stories/coffee_story-1678901234567.jpg"
+    },
+    "viewsCount": 0,
+    "createdAt": "2024-01-15T08:30:00Z",
+    "expiresAt": "2024-01-16T08:30:00Z"
+  }
+}
+```
+
+#### View Story
+**API Endpoint**: `POST /api/stories/:id/view`
+
+**Request Body**: No body required
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Story viewed successfully",
+  "viewsCount": 25
+}
+```
+
+### 5. Comments APIs
+
+#### Create Comment
+**API Endpoint**: `POST /api/comments`
+
+**Request Body (JSON)**:
+```json
+{
+  "content": "Amazing view! Where is this place?",
+  "postId": "post123"
+}
+```
+
+**Create Reply to Comment**:
+```json
+{
+  "content": "This is in the Himalayas, near Manali!",
+  "postId": "post123",
+  "parentCommentId": "comment123"
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Comment created successfully",
+  "comment": {
+    "_id": "comment124",
+    "author": {
+      "_id": "user456",
+      "name": "Amit Sharma",
+      "profileId": "amitsharma",
+      "profileImage": "/uploads/profiles/amit.jpg",
+      "isVerified": false
+    },
+    "content": "Amazing view! Where is this place?",
+    "post": "post123",
+    "parentComment": null,
+    "likesCount": 0,
+    "repliesCount": 0,
+    "createdAt": "2024-01-15T11:00:00Z"
+  }
+}
+```
+
+#### Like/Unlike Comment
+**API Endpoint**: `POST /api/comments/:id/like`
+
+**Request Body**: No body required
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Comment liked successfully",
+  "isLiked": true,
+  "likesCount": 5
+}
+```
+
+#### Update Comment
+**API Endpoint**: `PUT /api/comments/:id`
+
+**Request Body (JSON)**:
+```json
+{
+  "content": "Amazing view! Where exactly is this place? Looks incredible!"
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Comment updated successfully",
+  "comment": {
+    "_id": "comment124",
+    "author": {
+      "_id": "user456",
+      "name": "Amit Sharma",
+      "profileId": "amitsharma",
+      "profileImage": "/uploads/profiles/amit.jpg",
+      "isVerified": false
+    },
+    "content": "Amazing view! Where exactly is this place? Looks incredible!",
+    "post": "post123",
+    "likesCount": 5,
+    "repliesCount": 1,
+    "createdAt": "2024-01-15T11:00:00Z"
+  }
+}
+```
+
+### 6. Services APIs
+
+#### Create Service
+**API Endpoint**: `POST /api/services`
+
+**FormData Request Example (JavaScript)**:
+```javascript
+const createServiceWithFormData = async (token) => {
+  const formData = new FormData();
+
+  // Text fields
+  formData.append('title', 'Professional Web Development');
+  formData.append('description', 'Full-stack web development services using modern technologies like React, Node.js, and MongoDB.');
+  formData.append('category', 'Software Development');
+  
+  formData.append('pricing', JSON.stringify({
+    type: 'hourly',
+    minPrice: 1500,
+    maxPrice: 3000,
+    currency: 'INR'
+  }));
+  
+  formData.append('location', JSON.stringify({
+    type: 'both',
+    address: {
+      street: '123 Tech Street',
+      city: 'New Delhi',
+      state: 'Delhi',
+      country: 'India',
+      zipCode: '110001'
+    },
+    coordinates: { latitude: 28.6139, longitude: 77.2090 }
+  }));
+  
+  formData.append('availability', JSON.stringify({
+    days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+    timeSlots: [
+      { start: '09:00', end: '17:00' }
+    ]
+  }));
+  
+  formData.append('tags', 'web development,react,nodejs,mongodb');
+
+  // Multiple service images
+  // In React Native:
+  // const image1 = await ImagePicker.launchImageLibraryAsync();
+  // const image2 = await ImagePicker.launchImageLibraryAsync();
+  // formData.append('images', { uri: image1.uri, name: 'service1.jpg', type: 'image/jpeg' });
+  // formData.append('images', { uri: image2.uri, name: 'service2.jpg', type: 'image/jpeg' });
+
+  const response = await fetch('http://localhost:5000/api/services', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  return await response.json();
+};
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Service created successfully",
+  "service": {
+    "_id": "service123",
+    "provider": {
+      "_id": "user123",
+      "name": "Jane Doe",
+      "profileId": "janedoe_official",
+      "profileImage": "/uploads/profiles/jane.jpg",
+      "isVerified": false
+    },
+    "title": "Professional Web Development",
+    "description": "Full-stack web development services using modern technologies like React, Node.js, and MongoDB.",
+    "category": "Software Development",
+    "pricing": {
+      "type": "hourly",
+      "minPrice": 1500,
+      "maxPrice": 3000,
+      "currency": "INR"
+    },
+    "location": {
+      "type": "both",
+      "address": {
+        "street": "123 Tech Street",
+        "city": "New Delhi",
+        "state": "Delhi",
+        "country": "India",
+        "zipCode": "110001"
+      }
+    },
+    "images": [
+      "/uploads/services/service1-1678901234567.jpg",
+      "/uploads/services/service2-1678901234568.jpg"
+    ],
+    "tags": ["web development", "react", "nodejs", "mongodb"],
+    "rating": {
+      "average": 0,
+      "count": 0
+    },
+    "createdAt": "2024-01-15T12:00:00Z"
+  }
+}
+```
+
+#### Add Service Review
+**API Endpoint**: `POST /api/services/:id/review`
+
+**Request Body (JSON)**:
+```json
+{
+  "rating": 5,
+  "comment": "Excellent service! Very professional and delivered on time."
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Review added successfully",
+  "rating": {
+    "average": 4.8,
+    "count": 15
+  }
+}
+```
+
+### 7. Advertisements APIs
+
+#### Create Advertisement
+**API Endpoint**: `POST /api/advertisements`
+
+**FormData Request Example (JavaScript)**:
+```javascript
+const createAdvertisementWithFormData = async (token) => {
+  const formData = new FormData();
+
+  // Text fields
+  formData.append('title', 'Premium Fitness App');
+  formData.append('description', 'Get fit with our AI-powered personal trainer app. Download now!');
+  formData.append('link', 'https://fitnessapp.com/download');
+  formData.append('type', 'banner');
+  formData.append('priority', '5');
+  
+  formData.append('targetAudience', JSON.stringify({
+    ageRange: { min: 18, max: 45 },
+    interests: ['fitness', 'health', 'wellness'],
+    location: {
+      countries: ['India'],
+      states: ['Delhi', 'Mumbai', 'Bangalore'],
+      cities: ['New Delhi', 'Mumbai', 'Bangalore']
+    }
+  }));
+  
+  formData.append('budget', JSON.stringify({
+    type: 'cpm',
+    amount: 50,
+    currency: 'INR'
+  }));
+  
+  formData.append('schedule', JSON.stringify({
+    startDate: '2024-01-15T00:00:00Z',
+    endDate: '2024-02-15T23:59:59Z',
+    timezone: 'Asia/Kolkata'
+  }));
+
+  // Advertisement image
+  // In React Native:
+  // const adImage = await ImagePicker.launchImageLibraryAsync();
+  // formData.append('image', { uri: adImage.uri, name: 'ad.jpg', type: 'image/jpeg' });
+
+  const response = await fetch('http://localhost:5000/api/advertisements', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  return await response.json();
+};
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Advertisement created successfully",
+  "advertisement": {
+    "_id": "ad123",
+    "title": "Premium Fitness App",
+    "description": "Get fit with our AI-powered personal trainer app. Download now!",
+    "image": "/uploads/advertisements/ad-1678901234567.jpg",
+    "link": "https://fitnessapp.com/download",
+    "type": "banner",
+    "targetAudience": {
+      "ageRange": { "min": 18, "max": 45 },
+      "interests": ["fitness", "health", "wellness"],
+      "location": {
+        "countries": ["India"],
+        "states": ["Delhi", "Mumbai", "Bangalore"]
+      }
+    },
+    "budget": {
+      "type": "cpm",
+      "amount": 50,
+      "currency": "INR"
+    },
+    "schedule": {
+      "startDate": "2024-01-15T00:00:00Z",
+      "endDate": "2024-02-15T23:59:59Z",
+      "timezone": "Asia/Kolkata"
+    },
+    "metrics": {
+      "impressions": 0,
+      "clicks": 0,
+      "conversions": 0,
+      "spend": 0
+    },
+    "status": "draft",
+    "priority": 5,
+    "createdAt": "2024-01-15T13:00:00Z"
+  }
+}
+```
+
+#### Record Advertisement Click
+**API Endpoint**: `POST /api/advertisements/:id/click`
+
+**Request Body**: No body required
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Click recorded successfully",
+  "redirectUrl": "https://fitnessapp.com/download"
+}
+```
+
+## 🔗 Complete API Endpoints List
 
 ### Authentication
 - `POST /api/auth/send-otp` - Send OTP to phone number
 - `POST /api/auth/verify-otp` - Verify OTP and authenticate
 - `GET /api/auth/me` - Get current user info
 
-## 📋 Authentication Flow
-
-### Step 1: Send OTP
-1. User enters phone number
-2. App calls `POST /api/auth/send-otp` with phone number
-3. API responds with:
-   - `type: "login"` - User exists, navigate to OTP verification for login
-   - `type: "signup"` - New user, navigate to OTP verification for signup
-
-### Step 2: Verify OTP
-1. User enters OTP (123456 for demo)
-2. App calls `POST /api/auth/verify-otp` with:
-   - For login: `{ phone, otp }`
-   - For signup: `{ phone, otp, userDetails }`
-3. API responds with:
-   - `type: "login"` - Navigate to home screen
-   - `type: "signup"` - Navigate to profile setup screen (optional) or home screen
-   - `type: "signup_incomplete"` - Missing user details, show profile form
-
-### Frontend Navigation Logic
-```javascript
-// After send-otp response
-if (response.type === 'login') {
-  // Navigate to OTP screen for login
-} else if (response.type === 'signup') {
-  // Navigate to OTP screen for signup
-}
-
-// After verify-otp response
-if (response.type === 'login') {
-  // Save token and navigate to home screen
-} else if (response.type === 'signup') {
-  // Save token and navigate to home screen or profile setup
-} else if (response.type === 'signup_incomplete') {
-  // Show profile details form
-}
-```
-
-### 5. Profile Details Screen (Continued from above)
-
-**Mock Data**:
-```json
-{
-  "name": "John Doe",
-  "bio": "Digital Creator from India",
-  "profession": "Software Engineer",
-  "education": "B.Tech Computer Science",
-  "interests": ["Technology", "Photography", "Travel"],
-  "dateOfBirth": "1995-06-15",
-  "country": "India",
-  "state": "Delhi",
-  "district": "New Delhi",
-  "website": "https://johndoe.com"
-}
-```
-
-### 6. Community Screen
-**API Endpoint**: `GET /api/posts/trending?category=tech`
-
-**Mock Response**:
-```json
-{
-  "success": true,
-  "posts": [
-    {
-      "_id": "post456",
-      "author": {
-        "name": "Riya Singh",
-        "profileId": "riyasingh",
-        "profession": "Developer"
-      },
-      "caption": "Is it good time to quit Amazon with 4 years of exp in SDE - II and join a startup company with work from home?",
-      "likesCount": 216,
-      "commentsCount": 6,
-      "category": "Tech & Support",
-      "createdAt": "2024-01-15T09:00:00Z"
-    }
-  ]
-}
-```
-
-### 7. Comments Screen
-**API Endpoint**: `GET /api/comments/post/:postId`
-
-**Mock Response**:
-```json
-{
-  "success": true,
-  "comments": [
-    {
-      "_id": "comment123",
-      "author": {
-        "name": "Amit Sharma",
-        "profileImage": "/uploads/profiles/amit.jpg"
-      },
-      "content": "I think it depends on the startup. If it has good funding and growth potential, it could be a great move!",
-      "likesCount": 24,
-      "repliesCount": 2,
-      "isLikedByUser": true,
-      "createdAt": "2024-01-15T10:15:00Z"
-    }
-  ]
-}
-```
-
-### 8. Services Screen
-**API Endpoint**: `GET /api/services?location=Delhi`
-
-**Mock Response**:
-```json
-{
-  "success": true,
-  "services": [
-    {
-      "_id": "service123",
-      "provider": {
-        "name": "Ravi Singh",
-        "profileImage": "/uploads/profiles/ravi.jpg"
-      },
-      "title": "Software Development",
-      "description": "Full-stack web development services",
-      "pricing": {
-        "type": "hourly",
-        "minPrice": 1000,
-        "maxPrice": 2000,
-        "currency": "INR"
-      },
-      "rating": {
-        "average": 4.5,
-        "count": 129
-      },
-      "location": {
-        "address": {
-          "city": "New Delhi",
-          "state": "Delhi"
-        }
-      }
-    }
-  ]
-}
-```
-
-### 9. Users Discovery Screen
-**API Endpoint**: `GET /api/users/suggestions`
-
-**Mock Response**:
-```json
-{
-  "success": true,
-  "suggestions": [
-    {
-      "_id": "user456",
-      "name": "Sachin Sharma",
-      "profileId": "sachinsharma",
-      "profession": "SDE - II",
-      "profileImage": "/uploads/profiles/sachin.jpg",
-      "followersCount": 1250,
-      "isVerified": false
-    }
-  ]
-}
-```
-
-### 10. User Profile Screen
-**API Endpoint**: `GET /api/users/:profileId`
-
-**Mock Response**:
-```json
-{
-  "success": true,
-  "user": {
-    "_id": "user789",
-    "name": "Manish Kumar",
-    "profileId": "manishkumar",
-    "profession": "Digital Creator",
-    "bio": "Creating amazing content daily",
-    "followersCount": 980,
-    "followingCount": 243,
-    "postsCount": 45,
-    "profileImage": "/uploads/profiles/manish.jpg",
-    "isFollowing": false
-  }
-}
-```
-
 ### Users
 - `GET /api/users/search` - Search users
 - `GET /api/users/suggestions` - Get suggested users
-- `GET /api/users/:profileId` - Get user profile
-- `PUT /api/users/profile` - Update profile
-- `POST /api/users/profile/image` - Upload profile image
+- `GET /api/users/profile` - Get current user profile
+- `GET /api/users/:profileId` - Get user profile by profileId
+- `PUT /api/users/profile` - Update profile (FormData)
 - `POST /api/users/:profileId/follow` - Follow/unfollow user
 - `GET /api/users/:profileId/posts` - Get user posts
 
 ### Posts
-- `POST /api/posts` - Create new post
+- `POST /api/posts` - Create new post (FormData)
 - `GET /api/posts/feed` - Get home feed
 - `GET /api/posts/trending` - Get trending posts
 - `GET /api/posts/:id` - Get single post
@@ -479,15 +821,15 @@ if (response.type === 'login') {
 - `DELETE /api/posts/:id` - Delete post
 
 ### Comments
-- `POST /api/comments` - Create comment
+- `POST /api/comments` - Create comment (JSON)
 - `GET /api/comments/post/:postId` - Get post comments
 - `GET /api/comments/:commentId/replies` - Get comment replies
 - `POST /api/comments/:id/like` - Like/unlike comment
-- `PUT /api/comments/:id` - Update comment
+- `PUT /api/comments/:id` - Update comment (JSON)
 - `DELETE /api/comments/:id` - Delete comment
 
 ### Stories
-- `POST /api/stories` - Create story
+- `POST /api/stories` - Create story (FormData)
 - `GET /api/stories/feed` - Get stories feed
 - `GET /api/stories/my` - Get user's stories
 - `GET /api/stories/user/:profileId` - Get user stories
@@ -496,17 +838,17 @@ if (response.type === 'login') {
 - `DELETE /api/stories/:id` - Delete story
 
 ### Services
-- `POST /api/services` - Create service
+- `POST /api/services` - Create service (FormData)
 - `GET /api/services` - Get all services
 - `GET /api/services/trending` - Get trending services
 - `GET /api/services/my` - Get user's services
 - `GET /api/services/:id` - Get single service
 - `PUT /api/services/:id` - Update service
 - `DELETE /api/services/:id` - Delete service
-- `POST /api/services/:id/review` - Add review
+- `POST /api/services/:id/review` - Add review (JSON)
 
 ### Advertisements
-- `POST /api/advertisements` - Create advertisement
+- `POST /api/advertisements` - Create advertisement (FormData)
 - `GET /api/advertisements/feed` - Get ads for feed
 - `GET /api/advertisements/:id` - Get single ad
 - `POST /api/advertisements/:id/click` - Record ad click
@@ -526,12 +868,22 @@ if (response.type === 'login') {
   profileImage: String,
   bio: String,
   profession: String,
+  education: String,
+  interests: [String],
+  dateOfBirth: Date,
+  country: String,
+  state: String,
+  district: String,
+  tahsil: String,
+  village: String,
+  website: String,
   followers: [ObjectId],
   following: [ObjectId],
   followersCount: Number,
   followingCount: Number,
   postsCount: Number,
-  // ... location and other fields
+  isVerified: Boolean,
+  isActive: Boolean
 }
 ```
 
@@ -549,8 +901,33 @@ if (response.type === 'login') {
   commentsCount: Number,
   sharesCount: Number,
   tags: [String],
-  location: Object,
+  location: {
+    name: String,
+    coordinates: { latitude: Number, longitude: Number }
+  },
+  visibility: String (enum: 'public', 'private'),
+  commentsEnabled: Boolean,
   isActive: Boolean
+}
+```
+
+### Story Model
+```javascript
+{
+  author: ObjectId,
+  media: {
+    type: String (image/video),
+    url: String,
+    thumbnail: String
+  },
+  caption: String,
+  views: [{
+    user: ObjectId,
+    viewedAt: Date
+  }],
+  viewsCount: Number,
+  isActive: Boolean,
+  expiresAt: Date (24 hours from creation)
 }
 ```
 
@@ -597,6 +974,8 @@ npm run dev
 - The app supports both local and cloud MongoDB
 - Soft delete is implemented for most entities
 - All endpoints return consistent JSON response format
+- Use FormData for file uploads (posts, stories, services, advertisements, profile images)
+- Use JSON for text-only requests (comments, reviews, authentication)
 
 ## 🤝 Contributing
 

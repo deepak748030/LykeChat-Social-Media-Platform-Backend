@@ -57,6 +57,15 @@ const postSchema = new mongoose.Schema({
       longitude: Number
     }
   },
+  visibility: {
+    type: String,
+    enum: ['public', 'private'],
+    default: 'public'
+  },
+  commentsEnabled: {
+    type: Boolean,
+    default: true
+  },
   isActive: {
     type: Boolean,
     default: true
@@ -68,11 +77,10 @@ const postSchema = new mongoose.Schema({
 });
 
 // Indexes for performance
-// postSchema.index({ createdAt: -1 });
-// postSchema.index({ createdAt: -1 });
-postSchema.index({ likesCount: -1 });
+postSchema.index({ createdAt: -1 });
 postSchema.index({ likesCount: -1, commentsCount: -1 }); // For trending posts
 postSchema.index({ tags: 1 });
+postSchema.index({ visibility: 1 });
 
 // Virtual for comments
 postSchema.virtual('comments', {
